@@ -14,12 +14,14 @@ app.use(cors());
 const router = express.Router();
 const dbRoute = DB;
 
-mongoose.connect(dbRoute, { useNewUrlParser: true }, function(err) {
-  if (err) return console.log(err);
-  app.listen(3000, function() {
-    console.log("Server is listening");
+mongoose
+  .connect(dbRoute, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => {
+    console.log("Connected to Database");
+  })
+  .catch(err => {
+    console.log("Not Connected to Database ERROR! ", err);
   });
-});
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -32,6 +34,7 @@ router.get("/last-records", (req, res) => {
     .sort({ date: -1 })
     .limit(count)
     .exec(function(err, data) {
+      console.log(err);
       if (err) return res.json({ success: false, error: err });
       return res.json({ success: true, data: data });
     });
