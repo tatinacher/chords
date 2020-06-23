@@ -1,31 +1,8 @@
-const mongoose = require("mongoose");
-const path = require("path");
 const express = require("express");
-var cors = require("cors");
-const bodyParser = require("body-parser");
-const logger = require("morgan");
+const router = express.Router();
+const mongoose = require("mongoose");
 const model = require("./data");
 var ObjectId = require("mongoose").Types.ObjectId;
-const { DB } = require("./config");
-
-const API_PORT = process.env.PORT || 3001;
-const app = express();
-app.use(cors());
-const router = express.Router();
-const dbRoute = DB;
-
-mongoose
-  .connect(dbRoute, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log("Connected to Database");
-  })
-  .catch(err => {
-    console.log("Not Connected to Database ERROR! ", err);
-  });
-
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-app.use(logger("dev"));
 
 router.get("/last-records", (req, res) => {
   const { count } = req.body;
@@ -34,7 +11,6 @@ router.get("/last-records", (req, res) => {
     .sort({ date: -1 })
     .limit(count)
     .exec(function(err, data) {
-      console.log(err);
       if (err) return res.json({ success: false, error: err });
       return res.json({ success: true, data: data });
     });
@@ -186,13 +162,20 @@ router.post("/add-song-variation", (req, res) => {
   });
 });
 
-app.use("/api", router);
-
-const publicPath = path.join(__dirname, "build");
-app.use(express.static(publicPath));
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(publicPath, "index.html"));
+router.get("/search", (req, res) => {
+  const search = req.query.request;
+  model.Songs.find({ title: { $regex: search, $options: "i" } })
+    .limit(10)
+    .exec(function(err, data) {
+      if (err) return res.json({ success: false, error: err });
+      const songs = data.map(song => {
+        return {
+          id: song._id,
+          title: song.title
+        };
+      });
+      return res.json({ success: true, data: songs });
+    });
 });
 
-app.listen(API_PORT, () => console.log(`LISTENING ON PORT ${API_PORT}`));
+module.exports = router;
